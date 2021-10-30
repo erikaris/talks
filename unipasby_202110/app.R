@@ -155,11 +155,12 @@ server <- function(input, output, session) {
   })
   
   output$map_1 <- renderHighchart({
-    # print(highchart_map_data())
+    data <- highchart_map_data() %>% group_by(province) %>% slice_max(harga)
+    
     hcmap(
       "https://code.highcharts.com/mapdata/countries/id/id-all.js",
       download_map_data = TRUE,
-      data = highchart_map_data(),
+      data = data,
       value = "harga",
       joinBy = c("fips", "highchart_prov_id"),
       name = "Harga komoditas",
