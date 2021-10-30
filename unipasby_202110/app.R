@@ -107,13 +107,20 @@ server <- function(input, output, session) {
   })
   
   highchart_map_data <- reactive({
-    commodity_prices <- commodity_prices()
-    provinces <- provinces()
-    highchart_map_id <- highchart_map_id()
-    
-    commodity_prices %>% 
-      left_join(provinces, by = c("province" = "id")) %>% 
-      left_join(highchart_map_id, by = c("label" = "provinsi"))
+    df <- as.data.frame(list())
+    withProgress(message = 'Sedang membaca data highchart', value = 0, {
+      commodity_prices <- commodity_prices() %>% 
+        group_by(Komoditas..Rp., province) %>% 
+        slice_max(tanggal)
+      
+      provinces <- provinces()
+      highchart_map_id <- highchart_map_id()
+      
+      df <- commodity_prices %>% 
+        left_join(provinces, by = c("province" = "id")) %>% 
+        left_join(highchart_map_id, by = c("label" = "provinsi"))
+    })
+    df
   })
   
   output$card_1 <- renderUI(h2(commodity_prices() %>% select(Komoditas..Rp.) %>% n_distinct()))
@@ -179,12 +186,10 @@ server <- function(input, output, session) {
   output$map_1_detail_header <- renderText({
     req(input$map_1_on_click)
     
-    provs <- highchart_map_data() %>% 
-      filter(province == map_1_on_click()$province[1]) %>% 
-      select(label) %>%
-      unique()
-      
-    paste("Harga komoditas Prov. ", paste(provs, collapse = " "))
+    data <- highchart_map_data() %>%
+      filter(province == map_1_on_click()$province[1])
+    
+    paste("Harga komoditas Prov. ", paste(unique(data$label), collapse = " "))
   })
   
   output$map_1_detail <- renderHighchart({
